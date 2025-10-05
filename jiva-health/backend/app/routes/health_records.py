@@ -1,261 +1,407 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import List, Optional
-import logging
+from fastapi import APIRouter, HTTPException, Depends, Body
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from firebase_admin import auth
+import logging
+from typing import Optional, Dict, Any
+from datetime import datetime
 
 from app.services.firestore_service import FirestoreService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+security = HTTPBearer()
 
-# Dependency to get Firestore service
+# Dependencies
 async def get_firestore_service():
     return FirestoreService()
 
-# Dependency to get current user from token
-async def get_current_user_from_token(token_data: dict = Depends(lambda: None)):
-    """Get current user from decoded token"""
-    # This will be injected by the main app's dependency
-    return token_data
-
-@router.get("/")
-async def get_health_records(
-    user_id: Optional[str] = Query(None, description="User ID to filter records"),
-    limit: int = Query(50, ge=1, le=100, description="Number of records to return"),
-    page: int = Query(1, ge=1, description="Page number"),
-    record_type: Optional[str] = Query(None, description="Filter by record type"),
-    firestore_service: FirestoreService = Depends(get_firestore_service),
-    current_user: dict = Depends(get_current_user_from_token)
+@router.post("/register")
+async def register_user(
+    user_data: Dict[str, Any] = Body(...),
+    firestore_service: FirestoreService = Depends(get_firestore_service)
 ):
-    """Get health records for the authenticated user"""
+    """Register a new user (this will be called after Firebase client-side registration)"""
     try:
-        # Use current user's ID if not provided
-        target_user_id = user_id or current_user.get('uid')
+        # Extract user information
+        uid = user_data.get('uid')
+        email = user_data.get('email')
+        name = user_data.get('name', '')
+        phone = user_data.get('phone', '')
         
-        if not target_user_id:
-            raise HTTPException(status_code=400, detail="User ID is required")
+        if not uid or not email:
+            raise HTTPException(status_code=400, detail="UID and email are required")
         
-        # Ensure user can only access their own records
-        if target_user_id != current_user.get('uid'):
-            raise HTTPException(status_code=403, detail="Access denied")
+        # Verify the user exists in Firebase Auth
+        try:
+            firebase_user = auth.get_user(uid)
+        except auth.UserNotFoundError:
+            raise HTTPException(status_code=404, detail="User not found in Firebase")
         
-        # Build filters
-        filters = [('user_id', '==', target_user_id)]
-        if record_type:
-            filters.append(('type', '==', record_type))
+        # Check if user profile already exists
+        existing_profile = await firestore_service.get_user_profile(uid)
+        if existing_profile:
+            raise HTTPException(status_code=400, detail="User profile already exists")
         
-        # Get records from Firestore
-        records = await firestore_service.query_documents(
-            collection='health_records',
-            filters=filters,
-            order_by='date',
-            limit=limit
-        )
+        # Create user profile in Firestore
+        profile_data = {
+            'id': uid,
+            'email': email,
+            'name': name,
+            'phone': phone,
+            'date_of_birth': user_data.get('date_of_birth'),
+            'blood_group': user_data.get('blood_group'),
+            'allergies': user_data.get('allergies', []),
+            'chronic_conditions': user_data.get('chronic_conditions', []),
+            'emergency_contact': user_data.get('emergency_contact'),
+            'created_at': datetime.utcnow().isoformat(),
+            'updated_at': datetime.utcnow().isoformat(),
+            'profile_completed': bool(name and phone),
+            'last_login': datetime.utcnow().isoformat()
+        }
         
-        # Calculate pagination
-        total_records = len(records)  # This is simplified; in production, you'd get total count separately
+        await firestore_service.create_user_profile(uid, profile_data)
+        
+        logger.info(f"User profile created for UID: {uid}")
         
         return {
             "success": True,
+            "message": "User profile created successfully",
             "data": {
-                "records": records,
-                "total": total_records,
-                "page": page,
-                "limit": limit,
-                "has_more": total_records == limit
+                "uid": uid,
+                "email": email,
+                "name": name,
+                "profile_completed": profile_data['profile_completed']
             }
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error fetching health records: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch health records")
+        logger.error(f"Error creating user profile: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create user profile")
 
-@router.get("/{record_id}")
-async def get_health_record(
-    record_id: str,
-    firestore_service: FirestoreService = Depends(get_firestore_service),
-    current_user: dict = Depends(get_current_user_from_token)
+@router.post("/login")
+async def login_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    firestore_service: FirestoreService = Depends(get_firestore_service)
 ):
-    """Get a specific health record by ID"""
+    """Login user (verify token and update last login)"""
     try:
-        # Get the record
-        record = await firestore_service.get_health_record(record_id)
+        # Verify Firebase ID token
+        token = credentials.credentials
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token['uid']
         
-        if not record:
-            raise HTTPException(status_code=404, detail="Health record not found")
+        # Get user profile
+        user_profile = await firestore_service.get_user_profile(uid)
         
-        # Ensure user can only access their own records
-        if record.get('user_id') != current_user.get('uid'):
-            raise HTTPException(status_code=403, detail="Access denied")
+        if not user_profile:
+            # If profile doesn't exist, create a minimal one
+            firebase_user = auth.get_user(uid)
+            profile_data = {
+                'id': uid,
+                'email': firebase_user.email,
+                'name': firebase_user.display_name or '',
+                'phone': firebase_user.phone_number or '',
+                'allergies': [],
+                'chronic_conditions': [],
+                'created_at': datetime.utcnow().isoformat(),
+                'updated_at': datetime.utcnow().isoformat(),
+                'profile_completed': False,
+                'last_login': datetime.utcnow().isoformat()
+            }
+            await firestore_service.create_user_profile(uid, profile_data)
+            user_profile = profile_data
+        else:
+            # Update last login
+            await firestore_service.update_user_profile(uid, {
+                'last_login': datetime.utcnow().isoformat()
+            })
+        
+        logger.info(f"User logged in: {uid}")
         
         return {
             "success": True,
-            "data": record
+            "message": "Login successful",
+            "data": {
+                "user": user_profile,
+                "token_valid": True,
+                "expires_in": decoded_token.get('exp', 0) - int(datetime.utcnow().timestamp())
+            }
         }
         
-    except HTTPException:
-        raise
+    except auth.InvalidIdTokenError:
+        logger.warning("Invalid ID token provided")
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
+    except auth.ExpiredIdTokenError:
+        logger.warning("Expired ID token provided")
+        raise HTTPException(status_code=401, detail="Authentication token expired")
     except Exception as e:
-        logger.error(f"Error fetching health record {record_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch health record")
+        logger.error(f"Error during login: {e}")
+        raise HTTPException(status_code=500, detail="Login failed")
 
-@router.post("/")
-async def create_health_record(
-    record_data: dict,
-    firestore_service: FirestoreService = Depends(get_firestore_service),
-    current_user: dict = Depends(get_current_user_from_token)
+@router.post("/logout")
+async def logout_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    firestore_service: FirestoreService = Depends(get_firestore_service)
 ):
-    """Create a new health record"""
+    """Logout user (revoke token and update logout time)"""
     try:
-        # Ensure the record belongs to the current user
-        record_data['user_id'] = current_user.get('uid')
+        # Verify token first
+        token = credentials.credentials
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token['uid']
         
-        # Validate required fields
-        required_fields = ['date', 'type', 'facility', 'biomarkers']
-        for field in required_fields:
-            if field not in record_data:
-                raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+        # Revoke refresh tokens for the user
+        auth.revoke_refresh_tokens(uid)
         
-        # Create the record
-        record_id = await firestore_service.create_health_record(record_data)
+        # Update user profile with logout time
+        await firestore_service.update_user_profile(uid, {
+            'last_logout': datetime.utcnow().isoformat()
+        })
         
-        # Get the created record
-        created_record = await firestore_service.get_health_record(record_id)
+        logger.info(f"User logged out: {uid}")
         
         return {
             "success": True,
-            "message": "Health record created successfully",
-            "data": created_record
+            "message": "Logout successful"
         }
         
+    except auth.InvalidIdTokenError:
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
+    except Exception as e:
+        logger.error(f"Error during logout: {e}")
+        raise HTTPException(status_code=500, detail="Logout failed")
+
+@router.get("/profile")
+async def get_user_profile(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    firestore_service: FirestoreService = Depends(get_firestore_service)
+):
+    """Get current user profile"""
+    try:
+        # Verify token
+        token = credentials.credentials
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token['uid']
+        
+        # Get user profile
+        user_profile = await firestore_service.get_user_profile(uid)
+        
+        if not user_profile:
+            raise HTTPException(status_code=404, detail="User profile not found")
+        
+        return {
+            "success": True,
+            "data": user_profile
+        }
+        
+    except auth.InvalidIdTokenError:
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error creating health record: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create health record")
+        logger.error(f"Error getting user profile: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get user profile")
 
-@router.put("/{record_id}")
-async def update_health_record(
-    record_id: str,
-    update_data: dict,
-    firestore_service: FirestoreService = Depends(get_firestore_service),
-    current_user: dict = Depends(get_current_user_from_token)
+@router.put("/profile")
+async def update_user_profile(
+    update_data: Dict[str, Any] = Body(...),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    firestore_service: FirestoreService = Depends(get_firestore_service)
 ):
-    """Update a health record"""
+    """Update user profile"""
     try:
-        # Get the existing record
-        existing_record = await firestore_service.get_health_record(record_id)
-        
-        if not existing_record:
-            raise HTTPException(status_code=404, detail="Health record not found")
-        
-        # Ensure user can only update their own records
-        if existing_record.get('user_id') != current_user.get('uid'):
-            raise HTTPException(status_code=403, detail="Access denied")
+        # Verify token
+        token = credentials.credentials
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token['uid']
         
         # Remove fields that shouldn't be updated
-        update_data.pop('id', None)
-        update_data.pop('user_id', None)
-        update_data.pop('created_at', None)
+        protected_fields = ['id', 'email', 'uid', 'created_at']
+        for field in protected_fields:
+            update_data.pop(field, None)
         
-        # Update the record
-        await firestore_service.update_health_record(record_id, update_data)
+        # Add updated timestamp
+        update_data['updated_at'] = datetime.utcnow().isoformat()
         
-        # Get the updated record
-        updated_record = await firestore_service.get_health_record(record_id)
+        # Check if profile is now complete
+        required_fields = ['name', 'phone']
+        current_profile = await firestore_service.get_user_profile(uid)
+        if current_profile:
+            profile_completed = all(
+                update_data.get(field) or current_profile.get(field) 
+                for field in required_fields
+            )
+            update_data['profile_completed'] = profile_completed
         
-        return {
-            "success": True,
-            "message": "Health record updated successfully",
-            "data": updated_record
-        }
+        # Update user profile
+        await firestore_service.update_user_profile(uid, update_data)
         
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error updating health record {record_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update health record")
-
-@router.delete("/{record_id}")
-async def delete_health_record(
-    record_id: str,
-    firestore_service: FirestoreService = Depends(get_firestore_service),
-    current_user: dict = Depends(get_current_user_from_token)
-):
-    """Delete a health record (soft delete)"""
-    try:
-        # Get the existing record
-        existing_record = await firestore_service.get_health_record(record_id)
+        # Get updated profile
+        updated_profile = await firestore_service.get_user_profile(uid)
         
-        if not existing_record:
-            raise HTTPException(status_code=404, detail="Health record not found")
-        
-        # Ensure user can only delete their own records
-        if existing_record.get('user_id') != current_user.get('uid'):
-            raise HTTPException(status_code=403, detail="Access denied")
-        
-        # Soft delete the record
-        await firestore_service.delete_health_record(record_id)
+        logger.info(f"User profile updated: {uid}")
         
         return {
             "success": True,
-            "message": "Health record deleted successfully"
+            "message": "Profile updated successfully",
+            "data": updated_profile
         }
         
+    except auth.InvalidIdTokenError:
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
+    except Exception as e:
+        logger.error(f"Error updating user profile: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update user profile")
+
+@router.post("/verify-token")
+async def verify_token(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Verify if the provided token is valid"""
+    try:
+        token = credentials.credentials
+        decoded_token = auth.verify_id_token(token)
+        
+        return {
+            "success": True,
+            "message": "Token is valid",
+            "data": {
+                "uid": decoded_token['uid'],
+                "email": decoded_token.get('email'),
+                "email_verified": decoded_token.get('email_verified', False),
+                "expires_at": decoded_token.get('exp', 0),
+                "issued_at": decoded_token.get('iat', 0)
+            }
+        }
+        
+    except auth.InvalidIdTokenError:
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
+    except auth.ExpiredIdTokenError:
+        raise HTTPException(status_code=401, detail="Authentication token expired")
+    except Exception as e:
+        logger.error(f"Error verifying token: {e}")
+        raise HTTPException(status_code=500, detail="Token verification failed")
+
+@router.post("/refresh-token")
+async def refresh_token(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Refresh user token (this is typically handled client-side by Firebase SDK)"""
+    try:
+        # Verify current token
+        token = credentials.credentials
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token['uid']
+        
+        # In Firebase, token refresh is handled client-side
+        # This endpoint can be used to verify the refreshed token
+        return {
+            "success": True,
+            "message": "Token verified. Use Firebase SDK client-side to refresh tokens.",
+            "data": {
+                "uid": uid,
+                "should_refresh_client_side": True
+            }
+        }
+        
+    except auth.InvalidIdTokenError:
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
+    except Exception as e:
+        logger.error(f"Error in refresh token endpoint: {e}")
+        raise HTTPException(status_code=500, detail="Token refresh failed")
+
+@router.delete("/account")
+async def delete_user_account(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    firestore_service: FirestoreService = Depends(get_firestore_service),
+    confirmation: Dict[str, str] = Body(...)
+):
+    """Delete user account (soft delete - mark as deleted)"""
+    try:
+        # Verify token
+        token = credentials.credentials
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token['uid']
+        
+        # Check confirmation
+        if confirmation.get('confirm_delete') != 'DELETE_MY_ACCOUNT':
+            raise HTTPException(
+                status_code=400, 
+                detail="Please provide confirmation with 'confirm_delete': 'DELETE_MY_ACCOUNT'"
+            )
+        
+        # Soft delete user profile
+        await firestore_service.update_user_profile(uid, {
+            'deleted': True,
+            'deleted_at': datetime.utcnow().isoformat(),
+            'account_status': 'deleted'
+        })
+        
+        # Soft delete all user's health records
+        user_records = await firestore_service.get_user_health_records(uid, limit=1000)
+        for record in user_records:
+            await firestore_service.delete_health_record(record['id'])
+        
+        logger.info(f"User account soft deleted: {uid}")
+        
+        return {
+            "success": True,
+            "message": "Account deleted successfully. Your data has been marked for deletion."
+        }
+        
+    except auth.InvalidIdTokenError:
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting health record {record_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete health record")
+        logger.error(f"Error deleting user account: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete account")
 
-@router.get("/stats/summary")
-async def get_health_stats(
-    firestore_service: FirestoreService = Depends(get_firestore_service),
-    current_user: dict = Depends(get_current_user_from_token)
+@router.get("/user-stats")
+async def get_user_statistics(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    firestore_service: FirestoreService = Depends(get_firestore_service)
 ):
-    """Get health statistics summary for the user"""
+    """Get user account statistics"""
     try:
-        user_id = current_user.get('uid')
+        # Verify token
+        token = credentials.credentials
+        decoded_token = auth.verify_id_token(token)
+        uid = decoded_token['uid']
         
-        # Get all user's health records
-        records = await firestore_service.get_user_health_records(user_id, limit=1000)
+        # Get user profile
+        user_profile = await firestore_service.get_user_profile(uid)
+        if not user_profile:
+            raise HTTPException(status_code=404, detail="User profile not found")
+        
+        # Get health records count
+        health_records = await firestore_service.get_user_health_records(uid, limit=1000)
         
         # Calculate statistics
-        total_records = len(records)
-        
-        # Count by type
-        type_counts = {}
-        normal_count = 0
-        recent_record = None
-        
-        for record in records:
-            # Count by type
-            record_type = record.get('type', 'Unknown')
-            type_counts[record_type] = type_counts.get(record_type, 0) + 1
-            
-            # Count normal results
-            biomarkers = record.get('biomarkers', {})
-            if all(b.get('status') == 'normal' for b in biomarkers.values()):
-                normal_count += 1
-            
-            # Get most recent record
-            if not recent_record or record.get('date', '') > recent_record.get('date', ''):
-                recent_record = record
+        account_age_days = 0
+        if user_profile.get('created_at'):
+            created_date = datetime.fromisoformat(user_profile['created_at'].replace('Z', '+00:00'))
+            account_age_days = (datetime.utcnow() - created_date.replace(tzinfo=None)).days
         
         return {
             "success": True,
             "data": {
-                "total_records": total_records,
-                "normal_results": normal_count,
-                "type_distribution": type_counts,
-                "recent_record_date": recent_record.get('date') if recent_record else None,
-                "recent_record_type": recent_record.get('type') if recent_record else None
+                "account_created": user_profile.get('created_at'),
+                "account_age_days": account_age_days,
+                "profile_completed": user_profile.get('profile_completed', False),
+                "total_health_records": len(health_records),
+                "last_login": user_profile.get('last_login'),
+                "last_activity": user_profile.get('updated_at')
             }
         }
         
+    except auth.InvalidIdTokenError:
+        raise HTTPException(status_code=401, detail="Invalid authentication token")
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error getting health stats: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get health statistics")
+        logger.error(f"Error getting user statistics: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get user statistics")
