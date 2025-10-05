@@ -1,0 +1,132 @@
+# ======================================
+# Standard .gitignore Template
+# ======================================
+
+# OS Files
+########################
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+desktop.ini
+
+# Logs
+########################
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Node.js
+########################
+node_modules/
+dist/
+build/
+.cache/
+.temp/
+.npm/
+.pnp.*
+coverage/
+lib/
+.astro/
+.next/
+out/
+.eslintcache
+.stylelintcache
+.vscode/
+*.tsbuildinfo
+
+# React Native / Expo
+########################
+.expo/
+.expo-shared/
+web-build/
+*.jks
+*.keystore
+*.p8
+*.pem
+*.key
+*.mobileprovision
+
+# Python
+########################
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+.eggs/
+build/
+develop-eggs/
+dist/
+pip-wheel-metadata/
+.installed.cfg
+.pytest_cache/
+.tox/
+.mypy_cache/
+.pyre/
+.pytype/
+.env
+.venv
+venv/
+env/
+ENV/
+.ipynb_checkpoints
+*.ipynb_convert
+
+# Rust
+########################
+target/
+Cargo.lock
+
+# IDEs & Editors
+########################
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.code-workspace
+
+# Environment & Config
+########################
+.env
+.env.*
+!.env.example
+*.local
+*.secret
+*.key
+
+# Temporary / Generated
+########################
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*.swo
+*.orig
+*.rej
+
+# Git
+########################
+.gitconfig.local
+.gitignore.local
+*.orig
+
+# Misc
+########################
+*.lock
+*.pid
+*.seed
+*.pid.lock
+*.coverage
+*.DS_Store
+
+# ======================================
+# End of .gitignore
+# ======================================
