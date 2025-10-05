@@ -1,1 +1,13 @@
- 
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@/*": ["./*"],
+      "@components/*": ["./components/*"],
+      "@services/*": ["./services/*"],
+      "@constants/*": ["./constants/*"],
+      "@config/*": ["./config/*"]
+    }
+  }
+}
