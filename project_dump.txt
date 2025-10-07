@@ -1,11 +1,72 @@
 
-📂 Directory: .
--------------
+📂 .
+----------------------------------------
 
-📂 Directory: jiva-health
------------------------
+📂 jiva-health
+----------------------------------------
 
---- File: jiva-health\package-lock.json ---
+--- jiva-health\.gitignore ---
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Service account keys
+*.json
+!package.json
+!package-lock.json
+!app.json
+!tsconfig.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# PID files
+*.pid
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Build
+build/
+dist/
+*.egg-info/
+
+--- jiva-health\package-lock.json ---
 {
   "name": "jiva-health",
   "lockfileVersion": 3,
@@ -13,10 +74,339 @@
   "packages": {}
 }
 
-📂 Directory: jiva-health\backend
--------------------------------
+--- jiva-health\README.md ---
+# Jīva Health - AI-Powered Health Record Management
 
---- File: jiva-health\backend\.env.example ---
+Complete healthcare platform for digitizing and managing medical records in India.
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+
+- Python 3.11+
+- Google Cloud account
+- Firebase project
+
+### Installation
+
+1. **Clone the repository**
+git clone https://github.com/yourusername/jiva-health.git
+cd jiva-health
+
+text
+
+2. **Setup environment**
+chmod +x setup-env.sh
+./setup-env.sh
+
+text
+
+3. **Update credentials**
+- Edit `backend/.env`
+- Edit `mobile-app/.env`
+- Add service account key to `backend/jiva-health-key.json`
+
+4. **Start all services**
+chmod +x start-all.sh
+./start-all.sh
+
+text
+
+## Project Structure
+
+jiva-health/
+├── mobile-app/ # React Native mobile app
+├── backend/ # FastAPI backend
+├── cloud-functions/ # Google Cloud Functions
+└── docs/ # Documentation
+
+text
+
+## Services
+
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+- **Mobile App**: http://localhost:19006
+
+## Documentation
+
+See `/docs` for detailed documentation.
+
+## License
+
+MIT License
+Make all scripts executable:
+
+bash
+chmod +x start-all.sh
+chmod +x stop-all.sh
+chmod +x start-backend.sh
+chmod +x start-mobile.sh
+chmod +x setup-env.sh
+Now you can start everything with:
+
+bash
+./start-all.sh
+This complete file structure and startup scripts will help you verify your setup and quickly start all services! 🚀
+--- jiva-health\setup-env.sh ---
+#!/bin/bash
+
+# Setup environment variables helper script
+
+echo "🔧 Jīva Health - Environment Setup"
+echo ""
+
+# Backend setup
+if [ ! -f "backend/.env" ]; then
+    echo "Creating backend/.env..."
+    cat > backend/.env << EOF
+# Google Cloud Configuration
+GOOGLE_APPLICATION_CREDENTIALS=./jiva-health-key.json
+GOOGLE_CLOUD_PROJECT_ID=your-project-id
+GOOGLE_CLOUD_STORAGE_BUCKET=your-bucket-name
+
+# Firebase Configuration
+FIREBASE_DATABASE_URL=https://your-project.firebaseio.com
+FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+
+# API Configuration
+API_SECRET_KEY=$(openssl rand -hex 32)
+API_ALGORITHM=HS256
+API_ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Environment
+ENVIRONMENT=development
+DEBUG=true
+HOST=0.0.0.0
+PORT=8000
+
+# CORS Origins
+CORS_ORIGINS=http://localhost:3000,http://localhost:19006,exp://$(ipconfig getifaddr en0):8081
+EOF
+    echo "✅ backend/.env created"
+fi
+
+# Mobile app setup
+if [ ! -f "mobile-app/.env" ]; then
+    echo "Creating mobile-app/.env..."
+    cat > mobile-app/.env << EOF
+# Firebase Configuration
+EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
+EXPO_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abc123
+
+# Backend API
+EXPO_PUBLIC_API_BASE_URL=http://$(ipconfig getifaddr en0):8000
+EXPO_PUBLIC_API_TIMEOUT=30000
+
+# Google Cloud
+EXPO_PUBLIC_CLOUD_STORAGE_BUCKET=your-bucket-name
+EOF
+    echo "✅ mobile-app/.env created"
+fi
+
+echo ""
+echo "⚠️  Please update the .env files with your actual credentials"
+echo "   - backend/.env"
+echo "   - mobile-app/.env"
+
+--- jiva-health\start-all.bat ---
+@echo off
+setlocal enabledelayedexpansion
+
+:: Jīva Health - Main Startup Script (Windows)
+echo ============================================
+echo      Jiva Health - Development Mode
+echo  AI-Powered Health Record Management
+echo ============================================
+echo.
+
+:: Check prerequisites
+echo [*] Checking prerequisites...
+
+where node >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Node.js is not installed
+    exit /b 1
+)
+
+where python >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Python is not installed
+    exit /b 1
+)
+
+echo [OK] All prerequisites satisfied
+echo.
+
+:: Check environment files
+echo [*] Checking environment files...
+
+if not exist "backend\.env" (
+    if exist "backend\.env.example" (
+        copy "backend\.env.example" "backend\.env"
+        echo [WARNING] Created backend\.env from example
+    ) else (
+        echo [ERROR] backend\.env.example not found
+        exit /b 1
+    )
+)
+
+if not exist "mobile-app\.env" (
+    if exist "mobile-app\.env.example" (
+        copy "mobile-app\.env.example" "mobile-app\.env"
+        echo [WARNING] Created mobile-app\.env from example
+    ) else (
+        echo [ERROR] mobile-app\.env.example not found
+        exit /b 1
+    )
+)
+
+echo [OK] Environment files checked
+echo.
+
+:: Create logs directory
+if not exist "logs" mkdir logs
+
+:: Start Backend
+echo [*] Starting Backend Server...
+
+if not exist "backend\venv" (
+    echo [*] Creating Python virtual environment...
+    cd backend
+    python -m venv venv
+    call venv\Scripts\activate
+    pip install -r requirements.txt
+    python -m spacy download en_core_web_sm
+    cd ..
+    echo [OK] Virtual environment created
+)
+
+cd backend
+call venv\Scripts\activate
+start /B cmd /c "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > ..\logs\backend.log 2>&1"
+cd ..
+
+echo [OK] Backend starting on http://localhost:8000
+timeout /t 3 /nobreak >nul
+
+:: Start Mobile App
+echo.
+echo [*] Starting Mobile App...
+
+if not exist "mobile-app\node_modules" (
+    echo [*] Installing npm dependencies...
+    cd mobile-app
+    call npm install
+    cd ..
+    echo [OK] Dependencies installed
+)
+
+cd mobile-app
+start /B cmd /c "npm start > ..\logs\mobile.log 2>&1"
+cd ..
+
+echo [OK] Expo starting on http://localhost:19006
+echo.
+echo ============================================
+echo   Jiva Health is now running!
+echo ============================================
+echo.
+echo Backend API:     http://localhost:8000
+echo API Docs:        http://localhost:8000/docs
+echo Mobile App:      http://localhost:19006
+echo.
+echo Press Ctrl+C to stop all services...
+echo.
+
+pause
+
+--- jiva-health\start-all.sh ---
+
+--- jiva-health\start-backend.sh ---
+#!/bin/bash
+
+cd backend
+
+if [ ! -d "venv" ]; then
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    python -m spacy download en_core_web_sm
+else
+    source venv/bin/activate
+fi
+
+echo "🚀 Starting Backend on http://localhost:8000"
+echo "📚 API Docs: http://localhost:8000/docs"
+echo ""
+
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+--- jiva-health\start-mobile.sh ---
+#!/bin/bash
+
+cd mobile-app
+
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installing dependencies..."
+    npm install
+fi
+
+echo "📱 Starting Expo on http://localhost:19006"
+echo "📲 Scan QR code with Expo Go app"
+echo ""
+
+npm start
+
+--- jiva-health\stop-all.bat ---
+@echo off
+echo [*] Stopping Jiva Health services...
+
+taskkill /F /IM python.exe /T >nul 2>&1
+taskkill /F /IM node.exe /T >nul 2>&1
+
+echo [OK] All services stopped
+pause
+
+--- jiva-health\stop-all.sh ---
+#!/bin/bash
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+echo -e "${YELLOW}🛑 Stopping Jīva Health services...${NC}"
+
+# Kill processes by PID if files exist
+if [ -f ".backend.pid" ]; then
+    BACKEND_PID=$(cat .backend.pid)
+    kill $BACKEND_PID 2>/dev/null && echo -e "${GREEN}✅ Backend stopped${NC}" || echo -e "${YELLOW}⚠️  Backend not running${NC}"
+    rm -f .backend.pid
+fi
+
+if [ -f ".expo.pid" ]; then
+    EXPO_PID=$(cat .expo.pid)
+    kill $EXPO_PID 2>/dev/null && echo -e "${GREEN}✅ Expo stopped${NC}" || echo -e "${YELLOW}⚠️  Expo not running${NC}"
+    rm -f .expo.pid
+fi
+
+# Kill by port as backup
+lsof -ti:8000 | xargs kill -9 2>/dev/null
+lsof -ti:19006 | xargs kill -9 2>/dev/null
+lsof -ti:19000 | xargs kill -9 2>/dev/null
+
+echo -e "${GREEN}✅ All services stopped${NC}"
+
+📂 jiva-health\backend
+----------------------------------------
+
+--- jiva-health\backend\.env ---
  
 # Firebase Admin SDK
 GOOGLE_APPLICATION_CREDENTIALS=path/to/serviceAccountKey.json
@@ -41,7 +431,32 @@ JWT_EXPIRE_MINUTES=1440
 SPACY_MODEL=en_core_web_sm
 OCR_CONFIDENCE_THRESHOLD=0.7
 
---- File: jiva-health\backend\.gitignore ---
+--- jiva-health\backend\.env.example ---
+ 
+# Firebase Admin SDK
+GOOGLE_APPLICATION_CREDENTIALS=path/to/serviceAccountKey.json
+FIREBASE_PROJECT_ID=your-firebase-project-id
+
+# Google Cloud Services
+GOOGLE_CLOUD_PROJECT_ID=your-gcp-project-id
+GOOGLE_CLOUD_STORAGE_BUCKET=your-storage-bucket
+
+# API Configuration
+API_HOST=0.0.0.0
+API_PORT=8000
+DEBUG=True
+CORS_ORIGINS=http://localhost:3000,http://localhost:19006
+
+# Security
+JWT_SECRET_KEY=your-super-secret-jwt-key
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=1440
+
+# OCR & NLP
+SPACY_MODEL=en_core_web_sm
+OCR_CONFIDENCE_THRESHOLD=0.7
+
+--- jiva-health\backend\.gitignore ---
 # Python
 __pycache__/
 *.py[cod]
@@ -99,7 +514,7 @@ htmlcov/
 Dockerfile.prod
 docker-compose.prod.yml
 
---- File: jiva-health\backend\Dockerfile ---
+--- jiva-health\backend\Dockerfile ---
  
 FROM python:3.12-slim
 
@@ -130,7 +545,7 @@ EXPOSE 8000
 # Command to run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
---- File: jiva-health\backend\requirements.txt ---
+--- jiva-health\backend\requirements.txt ---
  
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
@@ -148,10 +563,10 @@ pillow==10.1.0
 aiofiles==23.2.1
 httpx==0.25.2
 
-📂 Directory: jiva-health\backend\app
------------------------------------
+📂 jiva-health\backend\app
+----------------------------------------
 
---- File: jiva-health\backend\app\config.py ---
+--- jiva-health\backend\app\config.py ---
 import os
 from typing import List
 from pydantic_settings import BaseSettings
@@ -191,7 +606,7 @@ class Settings(BaseSettings):
 # Global settings instance
 settings = Settings()
 
---- File: jiva-health\backend\app\main.py ---
+--- jiva-health\backend\app\main.py ---
  
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -295,10 +710,10 @@ if __name__ == "__main__":
         log_level="info" if settings.debug else "warning"
     )
 
---- File: jiva-health\backend\app\models.py ---
+--- jiva-health\backend\app\models.py ---
  
 
---- File: jiva-health\backend\app\__init__.py ---
+--- jiva-health\backend\app\__init__.py ---
 """
 Jīva Health Backend API
 AI-powered health record management system
@@ -306,10 +721,91 @@ AI-powered health record management system
 
 __version__ = "1.0.0"
 
-📂 Directory: jiva-health\backend\app\models
-------------------------------------------
+📂 jiva-health\backend\app\models
+----------------------------------------
 
---- File: jiva-health\backend\app\models\user.py ---
+--- jiva-health\backend\app\models\health_record.py ---
+# backend/app/models/health_record.py
+from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any, List
+from datetime import datetime
+
+
+class Biomarker(BaseModel):
+    """Individual biomarker reading with its value, unit, normal range, and status."""
+    name: str = Field(..., example="hemoglobin")
+    value: Optional[float] = Field(None, example=13.5)
+    unit: Optional[str] = Field(None, example="g/dL")
+    range: Optional[str] = Field(None, example="12.0-16.0")
+    status: Optional[str] = Field(None, example="normal")
+
+
+class ProcessingMetadata(BaseModel):
+    """Metadata about OCR/NLP or document processing pipeline."""
+    ocr_pages: Optional[int] = Field(0, example=1)
+    ocr_blocks: Optional[int] = Field(0, example=15)
+    nlp_entities_found: Optional[int] = Field(0, example=5)
+    processed_at: Optional[str] = Field(
+        default_factory=lambda: datetime.utcnow().isoformat() + "Z"
+    )
+
+
+class HealthRecordBase(BaseModel):
+    """Common fields for health records."""
+    date: str = Field(..., example="2025-10-08")
+    type: str = Field(..., example="Lipid Panel")
+    facility: Optional[str] = Field(None, example="Apollo Diagnostics")
+    biomarkers: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        example={"cholesterol": {"value": 180, "unit": "mg/dL", "status": "normal"}},
+    )
+    original_document: Optional[str] = Field(None, example="lipid_report.pdf")
+    document_url: Optional[str] = Field(None, example="gs://jiva-health/documents/uid/abc123.pdf")
+    ocr_confidence: Optional[float] = Field(0.0, ge=0, le=1)
+    processing_metadata: Optional[ProcessingMetadata] = Field(default_factory=ProcessingMetadata)
+
+
+class HealthRecordCreate(HealthRecordBase):
+    """Schema for creating a new health record."""
+    user_id: Optional[str] = Field(None, example="firebase-uid-123")
+    created_at: Optional[str] = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    updated_at: Optional[str] = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+
+
+class HealthRecord(HealthRecordBase):
+    """Full health record stored in Firestore."""
+    id: Optional[str] = Field(None, example="record123")
+    user_id: str = Field(..., example="firebase-uid-123")
+    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    updated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    deleted: Optional[bool] = Field(False)
+    deleted_at: Optional[str] = None
+    account_status: Optional[str] = Field(None, example="active")
+
+    class Config:
+        orm_mode = True
+
+
+class HealthRecordListResponse(BaseModel):
+    """Response schema for multiple health records."""
+    records: List[HealthRecord]
+    count: int
+    next_cursor: Optional[str] = None
+
+
+class HealthRecordResponse(BaseModel):
+    """Response schema for a single health record."""
+    success: bool = True
+    data: HealthRecord
+
+
+class HealthRecordCreateResponse(BaseModel):
+    """Response schema for record creation."""
+    success: bool = True
+    message: str = "Health record created"
+    data: Dict[str, Any]
+
+--- jiva-health\backend\app\models\user.py ---
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from datetime import datetime
@@ -348,7 +844,7 @@ class UserUpdate(BaseModel):
     chronic_conditions: Optional[List[str]] = None
     emergency_contact: Optional[EmergencyContact] = None
 
---- File: jiva-health\backend\app\models\__init__.py ---
+--- jiva-health\backend\app\models\__init__.py ---
 from .user import User, UserCreate, UserUpdate
 from .health_record import HealthRecord, HealthRecordCreate, Biomarker
 from .upload import DocumentUpload, ProcessingResult
@@ -359,10 +855,10 @@ __all__ = [
     "DocumentUpload", "ProcessingResult"
 ]
 
-📂 Directory: jiva-health\backend\app\routes
-------------------------------------------
+📂 jiva-health\backend\app\routes
+----------------------------------------
 
---- File: jiva-health\backend\app\routes\auth.py ---
+--- jiva-health\backend\app\routes\auth.py ---
  
 from fastapi import APIRouter, HTTPException, Depends, Body
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -772,416 +1268,281 @@ async def get_user_statistics(
         logger.error(f"Error getting user statistics: {e}")
         raise HTTPException(status_code=500, detail="Failed to get user statistics")
 
---- File: jiva-health\backend\app\routes\health_records.py ---
-from fastapi import APIRouter, HTTPException, Depends, Body
+--- jiva-health\backend\app\routes\health_records.py ---
+# backend/app/routes/health_records.py
+from fastapi import APIRouter, HTTPException, Depends, Body, Query, BackgroundTasks, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from firebase_admin import auth
-import logging
-from typing import Optional, Dict, Any
+from firebase_admin import auth as firebase_auth
+from typing import Optional, Dict, Any, List
 from datetime import datetime
+import logging
 
 from app.services.firestore_service import FirestoreService
 
 logger = logging.getLogger(__name__)
-
-router = APIRouter()
+router = APIRouter(prefix="/api/health-records", tags=["Health Records"])
 security = HTTPBearer()
 
-# Dependencies
-async def get_firestore_service():
+
+# -------- Dependency: Firestore service factory --------
+async def get_firestore_service() -> FirestoreService:
+    """
+    Return a FirestoreService instance.
+    The FirestoreService methods are implemented as async in your service layer;
+    routes will await them. If you later refactor FirestoreService to be sync,
+    wrap calls with run_in_threadpool / asyncio.to_thread.
+    """
     return FirestoreService()
 
-@router.post("/register")
-async def register_user(
-    user_data: Dict[str, Any] = Body(...),
-    firestore_service: FirestoreService = Depends(get_firestore_service)
-):
-    """Register a new user (this will be called after Firebase client-side registration)"""
-    try:
-        # Extract user information
-        uid = user_data.get('uid')
-        email = user_data.get('email')
-        name = user_data.get('name', '')
-        phone = user_data.get('phone', '')
-        
-        if not uid or not email:
-            raise HTTPException(status_code=400, detail="UID and email are required")
-        
-        # Verify the user exists in Firebase Auth
-        try:
-            firebase_user = auth.get_user(uid)
-        except auth.UserNotFoundError:
-            raise HTTPException(status_code=404, detail="User not found in Firebase")
-        
-        # Check if user profile already exists
-        existing_profile = await firestore_service.get_user_profile(uid)
-        if existing_profile:
-            raise HTTPException(status_code=400, detail="User profile already exists")
-        
-        # Create user profile in Firestore
-        profile_data = {
-            'id': uid,
-            'email': email,
-            'name': name,
-            'phone': phone,
-            'date_of_birth': user_data.get('date_of_birth'),
-            'blood_group': user_data.get('blood_group'),
-            'allergies': user_data.get('allergies', []),
-            'chronic_conditions': user_data.get('chronic_conditions', []),
-            'emergency_contact': user_data.get('emergency_contact'),
-            'created_at': datetime.utcnow().isoformat(),
-            'updated_at': datetime.utcnow().isoformat(),
-            'profile_completed': bool(name and phone),
-            'last_login': datetime.utcnow().isoformat()
-        }
-        
-        await firestore_service.create_user_profile(uid, profile_data)
-        
-        logger.info(f"User profile created for UID: {uid}")
-        
-        return {
-            "success": True,
-            "message": "User profile created successfully",
-            "data": {
-                "uid": uid,
-                "email": email,
-                "name": name,
-                "profile_completed": profile_data['profile_completed']
-            }
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error creating user profile: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create user profile")
 
-@router.post("/login")
-async def login_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+# -------- Dependency: Current user (verify Firebase token) --------
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+) -> Dict[str, Any]:
+    """
+    Verify Firebase ID token and return decoded token (contains 'uid', 'email', etc).
+    Raises HTTPException on invalid/expired token.
+    """
+    token = credentials.credentials
+    try:
+        decoded = firebase_auth.verify_id_token(token)
+        # Minimal shape returned: include uid and email for convenience
+        return {
+            "uid": decoded.get("uid"),
+            "email": decoded.get("email"),
+            "email_verified": decoded.get("email_verified", False),
+            "token_data": decoded,
+        }
+    except firebase_auth.ExpiredIdTokenError:
+        logger.info("Expired Firebase token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication token expired")
+    except firebase_auth.InvalidIdTokenError:
+        logger.info("Invalid Firebase token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token")
+    except Exception as e:
+        logger.error(f"Token verification failed: {e}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token verification failed")
+
+
+# -------- Helper: standardize timestamps --------
+def now_iso() -> str:
+    return datetime.utcnow().isoformat() + "Z"
+
+
+# -------- Routes --------
+
+@router.post("/", status_code=status.HTTP_201_CREATED)
+async def create_health_record(
+    record: Dict[str, Any] = Body(...),
+    background_tasks: BackgroundTasks = Depends(),
+    current_user: Dict[str, Any] = Depends(get_current_user),
     firestore_service: FirestoreService = Depends(get_firestore_service)
 ):
-    """Login user (verify token and update last login)"""
+    """
+    Create a health record for the authenticated user.
+    Expects a dict with fields like: date, type, facility, biomarkers (dict), original_document, document_url, etc.
+    """
     try:
-        # Verify Firebase ID token
-        token = credentials.credentials
-        decoded_token = auth.verify_id_token(token)
-        uid = decoded_token['uid']
-        
-        # Get user profile
-        user_profile = await firestore_service.get_user_profile(uid)
-        
-        if not user_profile:
-            # If profile doesn't exist, create a minimal one
-            firebase_user = auth.get_user(uid)
-            profile_data = {
-                'id': uid,
-                'email': firebase_user.email,
-                'name': firebase_user.display_name or '',
-                'phone': firebase_user.phone_number or '',
-                'allergies': [],
-                'chronic_conditions': [],
-                'created_at': datetime.utcnow().isoformat(),
-                'updated_at': datetime.utcnow().isoformat(),
-                'profile_completed': False,
-                'last_login': datetime.utcnow().isoformat()
-            }
-            await firestore_service.create_user_profile(uid, profile_data)
-            user_profile = profile_data
+        uid = current_user["uid"]
+        if not uid:
+            raise HTTPException(status_code=401, detail="User authentication required")
+
+        # Normalize and protect fields
+        record_payload = dict(record)  # shallow copy
+        record_payload["user_id"] = uid
+        record_payload.setdefault("date", datetime.utcnow().strftime("%Y-%m-%d"))
+        record_payload["created_at"] = now_iso()
+        record_payload["updated_at"] = now_iso()
+
+        # In production you might do heavy validation or enrichment (NLP/OCR) here.
+        # If workload is heavy, schedule it in background_tasks or use a queue.
+        # Example placeholder:
+        # background_tasks.add_task(long_running_postprocess, record_payload)
+
+        # Persist to Firestore (returns record id in your service)
+        record_id = await firestore_service.create_health_record(record_payload)
+
+        # If your service returns a HealthRecord object, ensure you extract id appropriately.
+        # Here assume create_health_record returns the created record id (or object with .id)
+        # Normalize response:
+        created = None
+        if isinstance(record_id, str):
+            created = await firestore_service.get_health_record(record_id)
+            doc_id = record_id
         else:
-            # Update last login
-            await firestore_service.update_user_profile(uid, {
-                'last_login': datetime.utcnow().isoformat()
-            })
-        
-        logger.info(f"User logged in: {uid}")
-        
+            # If your service returns an object with 'id' attribute or dict
+            try:
+                doc_id = getattr(record_id, "id", None) or record_id.get("id")
+            except Exception:
+                doc_id = None
+
+            created = await firestore_service.get_health_record(doc_id) if doc_id else record_id
+
         return {
             "success": True,
-            "message": "Login successful",
+            "message": "Health record created",
             "data": {
-                "user": user_profile,
-                "token_valid": True,
-                "expires_in": decoded_token.get('exp', 0) - int(datetime.utcnow().timestamp())
+                "record_id": doc_id,
+                "record": created
             }
         }
-        
-    except auth.InvalidIdTokenError:
-        logger.warning("Invalid ID token provided")
-        raise HTTPException(status_code=401, detail="Invalid authentication token")
-    except auth.ExpiredIdTokenError:
-        logger.warning("Expired ID token provided")
-        raise HTTPException(status_code=401, detail="Authentication token expired")
-    except Exception as e:
-        logger.error(f"Error during login: {e}")
-        raise HTTPException(status_code=500, detail="Login failed")
 
-@router.post("/logout")
-async def logout_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    firestore_service: FirestoreService = Depends(get_firestore_service)
-):
-    """Logout user (revoke token and update logout time)"""
-    try:
-        # Verify token first
-        token = credentials.credentials
-        decoded_token = auth.verify_id_token(token)
-        uid = decoded_token['uid']
-        
-        # Revoke refresh tokens for the user
-        auth.revoke_refresh_tokens(uid)
-        
-        # Update user profile with logout time
-        await firestore_service.update_user_profile(uid, {
-            'last_logout': datetime.utcnow().isoformat()
-        })
-        
-        logger.info(f"User logged out: {uid}")
-        
-        return {
-            "success": True,
-            "message": "Logout successful"
-        }
-        
-    except auth.InvalidIdTokenError:
-        raise HTTPException(status_code=401, detail="Invalid authentication token")
-    except Exception as e:
-        logger.error(f"Error during logout: {e}")
-        raise HTTPException(status_code=500, detail="Logout failed")
-
-@router.get("/profile")
-async def get_user_profile(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    firestore_service: FirestoreService = Depends(get_firestore_service)
-):
-    """Get current user profile"""
-    try:
-        # Verify token
-        token = credentials.credentials
-        decoded_token = auth.verify_id_token(token)
-        uid = decoded_token['uid']
-        
-        # Get user profile
-        user_profile = await firestore_service.get_user_profile(uid)
-        
-        if not user_profile:
-            raise HTTPException(status_code=404, detail="User profile not found")
-        
-        return {
-            "success": True,
-            "data": user_profile
-        }
-        
-    except auth.InvalidIdTokenError:
-        raise HTTPException(status_code=401, detail="Invalid authentication token")
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting user profile: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get user profile")
+        logger.error(f"Error creating health record: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create health record")
 
-@router.put("/profile")
-async def update_user_profile(
+
+@router.get("/", status_code=status.HTTP_200_OK)
+async def list_health_records(
+    limit: int = Query(20, gt=0, le=100),
+    cursor: Optional[str] = Query(None),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    firestore_service: FirestoreService = Depends(get_firestore_service)
+):
+    """
+    List health records for the authenticated user.
+    Supports simple pagination via `limit` and `cursor` (cursor is optional and should be provided as record id).
+    """
+    try:
+        uid = current_user["uid"]
+        if not uid:
+            raise HTTPException(status_code=401, detail="User authentication required")
+
+        # Your FirestoreService.get_user_health_records may have different signature; adapt if needed.
+        # Here we call a method name you had previously: get_user_health_records or get_health_records
+        # Try both to be resilient.
+        try:
+            # Prefer user-scoped method if available
+            records = await firestore_service.get_user_health_records(uid, limit=limit, cursor=cursor)
+        except AttributeError:
+            # Fallback to general query method
+            records = await firestore_service.get_health_records(uid, limit=limit)
+
+        # Ensure list and convert to serializable format if needed
+        return {
+            "success": True,
+            "data": {
+                "records": records,
+                "count": len(records),
+                "next_cursor": None  # Implement cursor logic in FirestoreService for real pagination
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing health records: {e}")
+        raise HTTPException(status_code=500, detail="Failed to list health records")
+
+
+@router.get("/{record_id}", status_code=status.HTTP_200_OK)
+async def get_health_record(
+    record_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    firestore_service: FirestoreService = Depends(get_firestore_service)
+):
+    """
+    Retrieve a single health record by ID. Enforces record ownership.
+    """
+    try:
+        uid = current_user["uid"]
+        rec = await firestore_service.get_health_record(record_id)
+        if not rec:
+            raise HTTPException(status_code=404, detail="Record not found")
+
+        # Ownership check - expect record to contain 'user_id'
+        if rec.get("user_id") != uid:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        return {"success": True, "data": rec}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching health record {record_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch health record")
+
+
+@router.put("/{record_id}", status_code=status.HTTP_200_OK)
+async def update_health_record(
+    record_id: str,
     update_data: Dict[str, Any] = Body(...),
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    current_user: Dict[str, Any] = Depends(get_current_user),
     firestore_service: FirestoreService = Depends(get_firestore_service)
 ):
-    """Update user profile"""
+    """
+    Update allowed fields on a health record. Protected fields are not updatable.
+    """
     try:
-        # Verify token
-        token = credentials.credentials
-        decoded_token = auth.verify_id_token(token)
-        uid = decoded_token['uid']
-        
-        # Remove fields that shouldn't be updated
-        protected_fields = ['id', 'email', 'uid', 'created_at']
-        for field in protected_fields:
-            update_data.pop(field, None)
-        
-        # Add updated timestamp
-        update_data['updated_at'] = datetime.utcnow().isoformat()
-        
-        # Check if profile is now complete
-        required_fields = ['name', 'phone']
-        current_profile = await firestore_service.get_user_profile(uid)
-        if current_profile:
-            profile_completed = all(
-                update_data.get(field) or current_profile.get(field) 
-                for field in required_fields
-            )
-            update_data['profile_completed'] = profile_completed
-        
-        # Update user profile
-        await firestore_service.update_user_profile(uid, update_data)
-        
-        # Get updated profile
-        updated_profile = await firestore_service.get_user_profile(uid)
-        
-        logger.info(f"User profile updated: {uid}")
-        
-        return {
-            "success": True,
-            "message": "Profile updated successfully",
-            "data": updated_profile
-        }
-        
-    except auth.InvalidIdTokenError:
-        raise HTTPException(status_code=401, detail="Invalid authentication token")
-    except Exception as e:
-        logger.error(f"Error updating user profile: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update user profile")
+        uid = current_user["uid"]
+        record = await firestore_service.get_health_record(record_id)
+        if not record:
+            raise HTTPException(status_code=404, detail="Record not found")
 
-@router.post("/verify-token")
-async def verify_token(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    """Verify if the provided token is valid"""
-    try:
-        token = credentials.credentials
-        decoded_token = auth.verify_id_token(token)
-        
-        return {
-            "success": True,
-            "message": "Token is valid",
-            "data": {
-                "uid": decoded_token['uid'],
-                "email": decoded_token.get('email'),
-                "email_verified": decoded_token.get('email_verified', False),
-                "expires_at": decoded_token.get('exp', 0),
-                "issued_at": decoded_token.get('iat', 0)
-            }
-        }
-        
-    except auth.InvalidIdTokenError:
-        raise HTTPException(status_code=401, detail="Invalid authentication token")
-    except auth.ExpiredIdTokenError:
-        raise HTTPException(status_code=401, detail="Authentication token expired")
-    except Exception as e:
-        logger.error(f"Error verifying token: {e}")
-        raise HTTPException(status_code=500, detail="Token verification failed")
+        if record.get("user_id") != uid:
+            raise HTTPException(status_code=403, detail="Access denied")
 
-@router.post("/refresh-token")
-async def refresh_token(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    """Refresh user token (this is typically handled client-side by Firebase SDK)"""
-    try:
-        # Verify current token
-        token = credentials.credentials
-        decoded_token = auth.verify_id_token(token)
-        uid = decoded_token['uid']
-        
-        # In Firebase, token refresh is handled client-side
-        # This endpoint can be used to verify the refreshed token
-        return {
-            "success": True,
-            "message": "Token verified. Use Firebase SDK client-side to refresh tokens.",
-            "data": {
-                "uid": uid,
-                "should_refresh_client_side": True
-            }
-        }
-        
-    except auth.InvalidIdTokenError:
-        raise HTTPException(status_code=401, detail="Invalid authentication token")
-    except Exception as e:
-        logger.error(f"Error in refresh token endpoint: {e}")
-        raise HTTPException(status_code=500, detail="Token refresh failed")
+        # Remove protected fields
+        for p in ("id", "user_id", "created_at"):
+            update_data.pop(p, None)
 
-@router.delete("/account")
-async def delete_user_account(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    firestore_service: FirestoreService = Depends(get_firestore_service),
-    confirmation: Dict[str, str] = Body(...)
-):
-    """Delete user account (soft delete - mark as deleted)"""
-    try:
-        # Verify token
-        token = credentials.credentials
-        decoded_token = auth.verify_id_token(token)
-        uid = decoded_token['uid']
-        
-        # Check confirmation
-        if confirmation.get('confirm_delete') != 'DELETE_MY_ACCOUNT':
-            raise HTTPException(
-                status_code=400, 
-                detail="Please provide confirmation with 'confirm_delete': 'DELETE_MY_ACCOUNT'"
-            )
-        
-        # Soft delete user profile
-        await firestore_service.update_user_profile(uid, {
-            'deleted': True,
-            'deleted_at': datetime.utcnow().isoformat(),
-            'account_status': 'deleted'
-        })
-        
-        # Soft delete all user's health records
-        user_records = await firestore_service.get_user_health_records(uid, limit=1000)
-        for record in user_records:
-            await firestore_service.delete_health_record(record['id'])
-        
-        logger.info(f"User account soft deleted: {uid}")
-        
-        return {
-            "success": True,
-            "message": "Account deleted successfully. Your data has been marked for deletion."
-        }
-        
-    except auth.InvalidIdTokenError:
-        raise HTTPException(status_code=401, detail="Invalid authentication token")
+        update_data["updated_at"] = now_iso()
+
+        # If your service offers update_health_record, use it; else use generic document update method.
+        try:
+            updated = await firestore_service.update_health_record(record_id, update_data)
+        except AttributeError:
+            # Fallback: use update by writing a patch method on the service
+            # Many implementations have something like: firestore.collection(...).document(id).update(...)
+            # Here we attempt a generic update_user_profile style method if present:
+            try:
+                await firestore_service.db.collection("health_records").document(record_id).update(update_data)
+                updated = await firestore_service.get_health_record(record_id)
+            except Exception as e:
+                logger.error(f"Fallback update failed: {e}")
+                raise
+
+        return {"success": True, "message": "Record updated", "data": updated}
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting user account: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete account")
+        logger.error(f"Error updating health record {record_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update health record")
 
-@router.get("/user-stats")
-async def get_user_statistics(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+
+@router.delete("/{record_id}", status_code=status.HTTP_200_OK)
+async def delete_health_record(
+    record_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user),
     firestore_service: FirestoreService = Depends(get_firestore_service)
 ):
-    """Get user account statistics"""
+    """
+    Delete a health record. This performs a hard delete by default; convert to soft delete if preferred.
+    """
     try:
-        # Verify token
-        token = credentials.credentials
-        decoded_token = auth.verify_id_token(token)
-        uid = decoded_token['uid']
-        
-        # Get user profile
-        user_profile = await firestore_service.get_user_profile(uid)
-        if not user_profile:
-            raise HTTPException(status_code=404, detail="User profile not found")
-        
-        # Get health records count
-        health_records = await firestore_service.get_user_health_records(uid, limit=1000)
-        
-        # Calculate statistics
-        account_age_days = 0
-        if user_profile.get('created_at'):
-            created_date = datetime.fromisoformat(user_profile['created_at'].replace('Z', '+00:00'))
-            account_age_days = (datetime.utcnow() - created_date.replace(tzinfo=None)).days
-        
-        return {
-            "success": True,
-            "data": {
-                "account_created": user_profile.get('created_at'),
-                "account_age_days": account_age_days,
-                "profile_completed": user_profile.get('profile_completed', False),
-                "total_health_records": len(health_records),
-                "last_login": user_profile.get('last_login'),
-                "last_activity": user_profile.get('updated_at')
-            }
-        }
-        
-    except auth.InvalidIdTokenError:
-        raise HTTPException(status_code=401, detail="Invalid authentication token")
+        uid = current_user["uid"]
+        record = await firestore_service.get_health_record(record_id)
+        if not record:
+            raise HTTPException(status_code=404, detail="Record not found")
+
+        if record.get("user_id") != uid:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        # If you prefer soft-delete, replace this with an update setting 'deleted': True
+        deleted = await firestore_service.delete_health_record(record_id)
+
+        return {"success": True, "message": "Record deleted", "data": {"deleted": deleted}}
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting user statistics: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get user statistics")
+        logger.error(f"Error deleting health record {record_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete health record")
 
---- File: jiva-health\backend\app\routes\upload.py ---
+--- jiva-health\backend\app\routes\upload.py ---
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 import aiofiles
@@ -1477,10 +1838,10 @@ async def delete_uploaded_document(
         logger.error(f"Error deleting document: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete document")
 
-📂 Directory: jiva-health\backend\app\services
---------------------------------------------
+📂 jiva-health\backend\app\services
+----------------------------------------
 
---- File: jiva-health\backend\app\services\firestore_service.py ---
+--- jiva-health\backend\app\services\firestore_service.py ---
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 from typing import Dict, List, Optional, Any
@@ -1614,7 +1975,7 @@ class FirestoreService:
             logger.error(f"Error deleting health record: {str(e)}")
             raise e
 
---- File: jiva-health\backend\app\services\nlp_service.py ---
+--- jiva-health\backend\app\services\nlp_service.py ---
 import re
 import spacy
 import nltk
@@ -2160,7 +2521,7 @@ class NLPService:
         
         return validation_results
 
---- File: jiva-health\backend\app\services\ocr_service.py ---
+--- jiva-health\backend\app\services\ocr_service.py ---
  
 from google.cloud import vision
 from google.cloud import storage
@@ -2275,31 +2636,31 @@ class OCRService:
         else:
             return "Medical Report"
 
---- File: jiva-health\backend\app\services\__init__.py ---
+--- jiva-health\backend\app\services\__init__.py ---
 from .firestore_service import FirestoreService
 from .ocr_service import OCRService
 from .nlp_service import NLPService
 
 __all__ = ["FirestoreService", "OCRService", "NLPService"]
 
-📂 Directory: jiva-health\backend\app\utils
------------------------------------------
+📂 jiva-health\backend\app\utils
+----------------------------------------
 
---- File: jiva-health\backend\app\utils\validators.py ---
+--- jiva-health\backend\app\utils\validators.py ---
  
 
-📂 Directory: jiva-health\cloud-functions
----------------------------------------
+📂 jiva-health\cloud-functions
+----------------------------------------
 
-📂 Directory: jiva-health\cloud-functions\document-processor
-----------------------------------------------------------
+📂 jiva-health\cloud-functions\document-processor
+----------------------------------------
 
---- File: jiva-health\cloud-functions\document-processor\.env.yaml ---
+--- jiva-health\cloud-functions\document-processor\.env.yaml ---
 # Environment variables for Cloud Function deployment
 GOOGLE_CLOUD_PROJECT: your-project-id
 FIRESTORE_EMULATOR_HOST: ""  # Leave empty for production
 
---- File: jiva-health\cloud-functions\document-processor\.gcloudignore ---
+--- jiva-health\cloud-functions\document-processor\.gcloudignore ---
 # Ignore files for Cloud Functions deployment
 .gcloudignore
 .git
@@ -2318,7 +2679,7 @@ README.md
 tests/
 *.sh
 
---- File: jiva-health\cloud-functions\document-processor\deploy.sh ---
+--- jiva-health\cloud-functions\document-processor\deploy.sh ---
 #!/bin/bash
 
 # Deployment script for document processor Cloud Function
@@ -2348,7 +2709,7 @@ gcloud functions deploy $FUNCTION_NAME \
 
 echo "Cloud Function deployed successfully!"
 
---- File: jiva-health\cloud-functions\document-processor\main.py ---
+--- jiva-health\cloud-functions\document-processor\main.py ---
 import functions_framework
 from google.cloud import vision
 from google.cloud import firestore
@@ -2751,7 +3112,7 @@ def send_notification(user_id: str, record_id: str, nlp_result: Dict):
     # Implement notification logic here
     pass
 
---- File: jiva-health\cloud-functions\document-processor\README.md ---
+--- jiva-health\cloud-functions\document-processor\README.md ---
 # Document Processor Cloud Function
 
 This Cloud Function automatically processes medical documents uploaded to Google Cloud Storage.
@@ -2767,28 +3128,98 @@ This Cloud Function automatically processes medical documents uploaded to Google
 
 1. **Set up Google Cloud Project**
 
---- File: jiva-health\cloud-functions\document-processor\requirements.txt ---
+--- jiva-health\cloud-functions\document-processor\requirements.txt ---
  
 
-📂 Directory: jiva-health\cloud-functions\notification-handler
-------------------------------------------------------------
+📂 jiva-health\cloud-functions\notification-handler
+----------------------------------------
 
---- File: jiva-health\cloud-functions\notification-handler\main.py ---
+--- jiva-health\cloud-functions\notification-handler\main.py ---
  
 
---- File: jiva-health\cloud-functions\notification-handler\requirements.txt ---
+--- jiva-health\cloud-functions\notification-handler\requirements.txt ---
  
 
-📂 Directory: jiva-health\lab-portal
-----------------------------------
+📂 jiva-health\lab-portal
+----------------------------------------
 
---- File: jiva-health\lab-portal\placeholder.txt ---
+--- jiva-health\lab-portal\placeholder.txt ---
 (Next.js or React app) 
 
-📂 Directory: jiva-health\mobile-app
-----------------------------------
+📂 jiva-health\logs
+----------------------------------------
 
---- File: jiva-health\mobile-app\.env ---
+--- jiva-health\logs\backend.log ---
+INFO:     Will watch for changes in these directories: ['C:\\Users\\PC\\Desktop\\Radom\\Jiva\\jiva-health\\backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [8632] using WatchFiles
+Process SpawnProcess-1:
+Traceback (most recent call last):
+  File "C:\Python312\Lib\multiprocessing\process.py", line 314, in _bootstrap
+    self.run()
+  File "C:\Python312\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\PC\Desktop\Radom\Jiva\jiva-health\backend\venv\Lib\site-packages\uvicorn\_subprocess.py", line 76, in subprocess_started
+    target(sockets=sockets)
+  File "C:\Users\PC\Desktop\Radom\Jiva\jiva-health\backend\venv\Lib\site-packages\uvicorn\server.py", line 61, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\asyncio\runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\asyncio\base_events.py", line 686, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\PC\Desktop\Radom\Jiva\jiva-health\backend\venv\Lib\site-packages\uvicorn\server.py", line 68, in serve
+    config.load()
+  File "C:\Users\PC\Desktop\Radom\Jiva\jiva-health\backend\venv\Lib\site-packages\uvicorn\config.py", line 467, in load
+    self.loaded_app = import_from_string(self.app)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\PC\Desktop\Radom\Jiva\jiva-health\backend\venv\Lib\site-packages\uvicorn\importer.py", line 24, in import_from_string
+    raise exc from None
+  File "C:\Users\PC\Desktop\Radom\Jiva\jiva-health\backend\venv\Lib\site-packages\uvicorn\importer.py", line 21, in import_from_string
+    module = importlib.import_module(module_str)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\importlib\__init__.py", line 90, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 999, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "C:\Users\PC\Desktop\Radom\Jiva\jiva-health\backend\app\main.py", line 11, in <module>
+    from app.config import settings
+  File "C:\Users\PC\Desktop\Radom\Jiva\jiva-health\backend\app\config.py", line 3, in <module>
+    from pydantic_settings import BaseSettings
+ModuleNotFoundError: No module named 'pydantic_settings'
+
+--- jiva-health\logs\mobile.log ---
+
+> jiva-health@1.0.0 start
+> expo start
+
+Starting project at C:\Users\PC\Desktop\Radom\Jiva\jiva-health\mobile-app
+env: load .env
+env: export EXPO_PUBLIC_FIREBASE_API_KEY EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN EXPO_PUBLIC_FIREBASE_PROJECT_ID EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID EXPO_PUBLIC_FIREBASE_APP_ID EXPO_PUBLIC_API_BASE_URL EXPO_PUBLIC_API_TIMEOUT EXPO_PUBLIC_CLOUD_STORAGE_BUCKET
+Starting Metro Bundler
+The following packages should be updated for best compatibility with the installed expo version:
+  react-native@0.74.0 - expected version: 0.74.5
+  react-native-safe-area-context@4.10.1 - expected version: 4.10.5
+  expo-image-picker@15.0.7 - expected version: ~15.1.0
+  typescript@5.9.3 - expected version: ~5.3.3
+Your project may not work correctly until you install the expected versions of the packages.
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+
+📂 jiva-health\mobile-app
+----------------------------------------
+
+--- jiva-health\mobile-app\.env ---
 # Firebase Configuration
 EXPO_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
@@ -2804,7 +3235,7 @@ EXPO_PUBLIC_API_TIMEOUT=30000
 # Google Cloud
 EXPO_PUBLIC_CLOUD_STORAGE_BUCKET=your_bucket_name
 
---- File: jiva-health\mobile-app\.gitignore ---
+--- jiva-health\mobile-app\.gitignore ---
 # Dependencies
 node_modules/
 
@@ -2847,7 +3278,7 @@ yarn-error.log*
 coverage/
 *.log
 
---- File: jiva-health\mobile-app\app.json ---
+--- jiva-health\mobile-app\app.json ---
  {
   "expo": {
     "name": "Jīva Health",
@@ -2890,7 +3321,7 @@ coverage/
   }
 }
 
---- File: jiva-health\mobile-app\package-lock.json ---
+--- jiva-health\mobile-app\package-lock.json ---
 {
   "name": "jiva-health",
   "version": "1.0.0",
@@ -19410,7 +19841,7 @@ coverage/
   }
 }
 
---- File: jiva-health\mobile-app\package.json ---
+--- jiva-health\mobile-app\package.json ---
  
 {
   "name": "jiva-health",
@@ -19454,7 +19885,7 @@ coverage/
   "private": true
 }
 
---- File: jiva-health\mobile-app\tsconfig.json ---
+--- jiva-health\mobile-app\tsconfig.json ---
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
@@ -19469,43 +19900,13 @@ coverage/
   }
 }
 
-📂 Directory: jiva-health\mobile-app\.expo
+📂 jiva-health\mobile-app\app
 ----------------------------------------
 
---- File: jiva-health\mobile-app\.expo\README.md ---
-> Why do I have a folder named ".expo" in my project?
-
-The ".expo" folder is created when an Expo project is started using "expo start" command.
-
-> What do the files contain?
-
-- "devices.json": contains information about devices that have recently opened this project. This is used to populate the "Development sessions" list in your development builds.
-- "packager-info.json": contains port numbers and process PIDs that are used to serve the application to the mobile device/simulator.
-- "settings.json": contains the server configuration that is used to serve the application manifest.
-
-> Should I commit the ".expo" folder?
-
-No, you should not share the ".expo" folder. It does not contain any information that is relevant for other developers working on the project, it is specific to your machine.
-
-Upon project creation, the ".expo" folder is already added to your ".gitignore" file.
-
---- File: jiva-health\mobile-app\.expo\settings.json ---
-{
-  "hostType": "lan",
-  "lanType": "ip",
-  "dev": true,
-  "minify": false,
-  "urlRandomness": null,
-  "https": false
-}
-
-📂 Directory: jiva-health\mobile-app\app
---------------------------------------
-
---- File: jiva-health\mobile-app\app\+not-found.tsx ---
+--- jiva-health\mobile-app\app\+not-found.tsx ---
  
 
---- File: jiva-health\mobile-app\app\_layout.tsx ---
+--- jiva-health\mobile-app\app\_layout.tsx ---
  import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { authService } from '../services/firebase';
@@ -19536,10 +19937,10 @@ export default function RootLayout() {
   );
 }
 
-📂 Directory: jiva-health\mobile-app\app\(tabs)
----------------------------------------------
+📂 jiva-health\mobile-app\app\(tabs)
+----------------------------------------
 
---- File: jiva-health\mobile-app\app\(tabs)\index.tsx ---
+--- jiva-health\mobile-app\app\(tabs)\index.tsx ---
  
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
@@ -19819,7 +20220,7 @@ const styles = StyleSheet.create({
   },
 });
 
---- File: jiva-health\mobile-app\app\(tabs)\profile.tsx ---
+--- jiva-health\mobile-app\app\(tabs)\profile.tsx ---
  
 import React, { useEffect, useState } from 'react';
 import {
@@ -20457,7 +20858,7 @@ const styles = StyleSheet.create({
   },
 });
 
---- File: jiva-health\mobile-app\app\(tabs)\timeline.tsx ---
+--- jiva-health\mobile-app\app\(tabs)\timeline.tsx ---
  
 import React, { useEffect, useState } from 'react';
 import {
@@ -20896,7 +21297,7 @@ const styles = StyleSheet.create({
   },
 });
 
---- File: jiva-health\mobile-app\app\(tabs)\upload.tsx ---
+--- jiva-health\mobile-app\app\(tabs)\upload.tsx ---
  
 import React, { useState } from 'react';
 import {
@@ -21669,7 +22070,7 @@ const styles = StyleSheet.create({
   },
 });
 
---- File: jiva-health\mobile-app\app\(tabs)\_layout.tsx ---
+--- jiva-health\mobile-app\app\(tabs)\_layout.tsx ---
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
@@ -21730,10 +22131,10 @@ export default function TabLayout() {
   );
 }
 
-📂 Directory: jiva-health\mobile-app\components
----------------------------------------------
+📂 jiva-health\mobile-app\components
+----------------------------------------
 
---- File: jiva-health\mobile-app\components\BiomarkerDisplay.tsx ---
+--- jiva-health\mobile-app\components\BiomarkerDisplay.tsx ---
  import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -21866,7 +22267,7 @@ const styles = StyleSheet.create({
   },
 });
 
---- File: jiva-health\mobile-app\components\DocumentUploader.tsx ---
+--- jiva-health\mobile-app\components\DocumentUploader.tsx ---
  
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
@@ -22062,7 +22463,7 @@ const styles = StyleSheet.create({
   },
 });
 
---- File: jiva-health\mobile-app\components\HealthCard.tsx ---
+--- jiva-health\mobile-app\components\HealthCard.tsx ---
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -22198,7 +22599,7 @@ const styles = StyleSheet.create({
   },
 });
 
---- File: jiva-health\mobile-app\components\LoadingOverlay.tsx ---
+--- jiva-health\mobile-app\components\LoadingOverlay.tsx ---
 import React from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import Colors from '../constants/Colors';
@@ -22241,7 +22642,7 @@ const styles = StyleSheet.create({
   },
 });
 
---- File: jiva-health\mobile-app\components\TimelineCard.tsx ---
+--- jiva-health\mobile-app\components\TimelineCard.tsx ---
  
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
@@ -22365,10 +22766,10 @@ const styles = StyleSheet.create({
   },
 });
 
-📂 Directory: jiva-health\mobile-app\config
------------------------------------------
+📂 jiva-health\mobile-app\config
+----------------------------------------
 
---- File: jiva-health\mobile-app\config\api.config.ts ---
+--- jiva-health\mobile-app\config\api.config.ts ---
 import Constants from 'expo-constants';
 
 export const API_CONFIG = {
@@ -22398,7 +22799,7 @@ export const ENDPOINTS = {
   updateProfile: '/api/user/profile/update',
 };
 
---- File: jiva-health\mobile-app\config\firebase.config.ts ---
+--- jiva-health\mobile-app\config\firebase.config.ts ---
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
@@ -22424,10 +22825,10 @@ export const storage = getStorage(app);
 
 export default app;
 
-📂 Directory: jiva-health\mobile-app\constants
---------------------------------------------
+📂 jiva-health\mobile-app\constants
+----------------------------------------
 
---- File: jiva-health\mobile-app\constants\Colors.ts ---
+--- jiva-health\mobile-app\constants\Colors.ts ---
  
 const tintColorLight = '#2D9CDB';
 const tintColorDark = '#fff';
@@ -22465,7 +22866,7 @@ export default {
   },
 };
 
---- File: jiva-health\mobile-app\constants\Types.ts ---
+--- jiva-health\mobile-app\constants\Types.ts ---
 // Health Record Types
 export interface Biomarker {
   value: number | string;
@@ -22520,10 +22921,10 @@ export interface DocumentUpload {
   size: number;
 }
 
-📂 Directory: jiva-health\mobile-app\services
--------------------------------------------
+📂 jiva-health\mobile-app\services
+----------------------------------------
 
---- File: jiva-health\mobile-app\services\api.ts ---
+--- jiva-health\mobile-app\services\api.ts ---
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { API_CONFIG, ENDPOINTS } from '../config/api.config';
 import { auth } from '../config/firebase.config';
@@ -22616,7 +23017,7 @@ class ApiService {
 
 export default new ApiService();
 
---- File: jiva-health\mobile-app\services\firebase.ts ---
+--- jiva-health\mobile-app\services\firebase.ts ---
  import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
@@ -22810,7 +23211,7 @@ export const storageService = {
   },
 };
 
---- File: jiva-health\mobile-app\services\storage.ts ---
+--- jiva-health\mobile-app\services\storage.ts ---
  
 import * as SecureStore from 'expo-secure-store';
 

@@ -1,5 +1,7 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
+from firebase_admin import auth as firebase_auth
 import aiofiles
 import os
 import logging
@@ -15,6 +17,7 @@ from google.cloud import storage
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+security = HTTPBearer()
 
 # Configuration
 UPLOAD_DIR = "uploads"
@@ -34,18 +37,30 @@ async def get_ocr_service():
 async def get_nlp_service():
     return NLPService()
 
-async def get_current_user_from_token(token_data: dict = Depends(lambda: None)):
-    return token_data
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Verify Firebase token and return user info"""
+    try:
+        token = credentials.credentials
+        decoded_token = firebase_auth.verify_id_token(token)
+        return {
+            'uid': decoded_token.get('uid'),
+            'email': decoded_token.get('email')
+        }
+    except firebase_auth.InvalidIdTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    except firebase_auth.ExpiredIdTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
+    except Exception as e:
+        logger.error(f"Token verification error: {e}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed")
 
 def validate_file(file: UploadFile) -> bool:
     """Validate uploaded file"""
     # Check file extension
     file_ext = os.path.splitext(file.filename.lower())[1] if file.filename else ""
     if file_ext not in ALLOWED_EXTENSIONS:
-        return False
-    
-    # Check file size (this is approximate, actual size checked during upload)
-    if hasattr(file, 'size') and file.size > MAX_FILE_SIZE:
         return False
     
     return True
@@ -60,9 +75,6 @@ async def upload_to_cloud_storage(file_path: str, destination_blob_name: str) ->
         
         blob.upload_from_filename(file_path)
         
-        # Make the blob publicly readable (optional, adjust based on your security needs)
-        # blob.make_public()
-        
         return f"gs://{bucket_name}/{destination_blob_name}"
         
     except Exception as e:
@@ -72,13 +84,13 @@ async def upload_to_cloud_storage(file_path: str, destination_blob_name: str) ->
 @router.post("/document")
 async def upload_document(
     file: UploadFile = File(...),
-    user_id: Optional[str] = Form(None),
     firestore_service: FirestoreService = Depends(get_firestore_service),
     ocr_service: OCRService = Depends(get_ocr_service),
     nlp_service: NLPService = Depends(get_nlp_service),
-    current_user: dict = Depends(get_current_user_from_token)
+    current_user: dict = Depends(get_current_user)
 ):
     """Upload and process medical document"""
+    file_path = None
     try:
         # Validate file
         if not validate_file(file):
@@ -138,7 +150,7 @@ async def upload_document(
             'ocr_confidence': ocr_result.get('confidence', 0.0),
             'processing_metadata': {
                 'ocr_pages': ocr_result.get('pages', 0),
-                'ocr_blocks': len(ocr_result.get('blocks', [])),
+                'ocr_blocks': ocr_result.get('blocks', 0),
                 'nlp_entities_found': len(nlp_result.get('entities', [])),
                 'processed_at': datetime.utcnow().isoformat()
             }
@@ -149,7 +161,8 @@ async def upload_document(
         
         # Clean up temporary file
         try:
-            os.remove(file_path)
+            if file_path and os.path.exists(file_path):
+                os.remove(file_path)
         except Exception as e:
             logger.warning(f"Could not remove temporary file {file_path}: {e}")
         
@@ -166,7 +179,7 @@ async def upload_document(
                     "ocr_confidence": ocr_result.get('confidence', 0.0),
                     "biomarkers_extracted": len(nlp_result.get('biomarkers', {})),
                     "text_length": len(ocr_result.get('raw_text', '')),
-                    "processing_time": "~3-5 seconds"  # This would be calculated in production
+                    "processing_time": "~3-5 seconds"
                 }
             }
         }
@@ -177,21 +190,20 @@ async def upload_document(
         logger.error(f"Error processing document upload: {e}")
         # Clean up temporary file on error
         try:
-            if 'file_path' in locals() and os.path.exists(file_path):
+            if file_path and os.path.exists(file_path):
                 os.remove(file_path)
         except:
             pass
         
-        raise HTTPException(status_code=500, detail="Failed to process document")
+        raise HTTPException(status_code=500, detail=f"Failed to process document: {str(e)}")
 
 @router.post("/process")
 async def process_existing_document(
     document_url: str = Form(...),
-    user_id: Optional[str] = Form(None),
     firestore_service: FirestoreService = Depends(get_firestore_service),
     ocr_service: OCRService = Depends(get_ocr_service),
     nlp_service: NLPService = Depends(get_nlp_service),
-    current_user: dict = Depends(get_current_user_from_token)
+    current_user: dict = Depends(get_current_user)
 ):
     """Process an already uploaded document"""
     try:
@@ -219,7 +231,7 @@ async def process_existing_document(
 async def get_processing_status(
     record_id: str,
     firestore_service: FirestoreService = Depends(get_firestore_service),
-    current_user: dict = Depends(get_current_user_from_token)
+    current_user: dict = Depends(get_current_user)
 ):
     """Get processing status of an upload"""
     try:
@@ -238,7 +250,7 @@ async def get_processing_status(
             "success": True,
             "data": {
                 "record_id": record_id,
-                "status": "completed",  # In production, this would track actual status
+                "status": "completed",
                 "ocr_confidence": record.get('ocr_confidence', 0.0),
                 "biomarkers_count": len(record.get('biomarkers', {})),
                 "processed_at": processing_metadata.get('processed_at'),
@@ -256,7 +268,7 @@ async def get_processing_status(
 async def delete_uploaded_document(
     record_id: str,
     firestore_service: FirestoreService = Depends(get_firestore_service),
-    current_user: dict = Depends(get_current_user_from_token)
+    current_user: dict = Depends(get_current_user)
 ):
     """Delete an uploaded document and its record"""
     try:
@@ -274,7 +286,6 @@ async def delete_uploaded_document(
         if document_url and document_url.startswith('gs://'):
             try:
                 # Parse GCS URL and delete
-                # This is simplified - implement proper GCS deletion
                 logger.info(f"Would delete cloud storage file: {document_url}")
             except Exception as e:
                 logger.warning(f"Could not delete cloud storage file: {e}")

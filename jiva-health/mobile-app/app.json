@@ -1,4 +1,4 @@
- {
+{
   "expo": {
     "name": "Jīva Health",
     "slug": "jiva-health",
@@ -36,6 +36,11 @@
     "plugins": [
       "expo-router"
     ],
-    "scheme": "jiva-health"
+    "scheme": "jiva-health",
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    }
   }
 }

@@ -1,71 +1,95 @@
 import os
-import fnmatch
 
 def load_ignore_patterns(*files):
-    """Load ignore patterns from multiple ignore files (like .gitignore, .gcloudignore)."""
+    """Load patterns from .gitignore and similar files."""
     patterns = []
     for ignore_file in files:
         if os.path.exists(ignore_file):
             with open(ignore_file, "r", encoding="utf-8", errors="ignore") as f:
                 for line in f:
                     line = line.strip()
-                    if not line or line.startswith("#"):
-                        continue
-                    patterns.append(line)
+                    if line and not line.startswith("#"):
+                        patterns.append(line)
     return patterns
 
 
-def is_ignored(path, patterns, root_dir):
-    """Check if a file or folder should be ignored based on ignore patterns."""
-    rel_path = os.path.relpath(path, root_dir)
+def should_ignore(path, patterns):
+    """Simple pattern matching - covers 90% of use cases."""
+    name = os.path.basename(path)
+    
     for pattern in patterns:
-        if fnmatch.fnmatch(rel_path, pattern) or fnmatch.fnmatch(rel_path, os.path.join("*", pattern)):
+        # Exact match
+        if name == pattern.rstrip('/'):
             return True
+        
+        # Wildcard at start: *.log, *.txt
+        if pattern.startswith('*') and name.endswith(pattern[1:]):
+            return True
+        
+        # Wildcard at end: log*, test*
+        if pattern.endswith('*') and name.startswith(pattern[:-1]):
+            return True
+        
+        # Directory pattern: node_modules/, build/
+        if pattern.endswith('/') and name == pattern[:-1]:
+            return True
+        
+        # Contains pattern: *cache*, *tmp*
+        if pattern.startswith('*') and pattern.endswith('*'):
+            if pattern[1:-1] in name:
+                return True
+    
     return False
 
 
 def dump_project(root_dir=".", output_file="project_dump.txt"):
-    # Ignore sources
-    gitignore_path = os.path.join(root_dir, ".gitignore")
-    gcloudignore_path = os.path.join(root_dir, ".gcloudignore")
-    ignore_patterns = load_ignore_patterns(gitignore_path, gcloudignore_path)
-
-    # Default directories & files to skip
-    exclude_dirs = {'.git', '__pycache__', '.venv', 'node_modules'}
-    exclude_files = {'dumper.py', output_file}
-
+    # Load ignore patterns
+    gitignore = os.path.join(root_dir, ".gitignore")
+    gcloudignore = os.path.join(root_dir, ".gcloudignore")
+    patterns = load_ignore_patterns(gitignore, gcloudignore)
+    
+    # Hard-coded excludes that are always skipped
+    always_skip = {
+        '.git', '__pycache__', '.venv', 'venv', 'node_modules',
+        '.expo', 'build', 'dist', '.next', '.cache'
+    }
+    
     with open(output_file, "w", encoding="utf-8", errors="ignore") as out:
         for dirpath, dirnames, filenames in os.walk(root_dir):
-            # Skip ignored or excluded directories
+            # Skip directories IN-PLACE so os.walk doesn't enter them
             dirnames[:] = [
-                d for d in dirnames
-                if d not in exclude_dirs and not is_ignored(os.path.join(dirpath, d), ignore_patterns, root_dir)
+                d for d in dirnames 
+                if d not in always_skip and not should_ignore(d, patterns)
             ]
-
-            # Write directory info
+            
             rel_path = os.path.relpath(dirpath, root_dir)
             if rel_path == ".":
                 rel_path = root_dir
-            out.write(f"\n📂 Directory: {rel_path}\n")
-            out.write("-" * (len(rel_path) + 12) + "\n")
-
+            
+            out.write(f"\n📂 {rel_path}\n")
+            out.write("-" * 40 + "\n")
+            
             for filename in filenames:
-                if filename in exclude_files:
-                    continue  # skip dumper.py and output file itself
-
+                # Skip the dumper script and output file
+                if filename in {'dumper.py', output_file}:
+                    continue
+                
+                # Skip ignored files
+                if should_ignore(filename, patterns):
+                    continue
+                
                 file_path = os.path.join(dirpath, filename)
-                if is_ignored(file_path, ignore_patterns, root_dir):
-                    continue  # skip ignored files
-
-                out.write(f"\n--- File: {os.path.relpath(file_path, root_dir)} ---\n")
+                rel_file = os.path.relpath(file_path, root_dir)
+                
+                out.write(f"\n--- {rel_file} ---\n")
                 try:
-                    with open(file_path, "r", encoding="utf-8") as f:
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                         out.write(f.read())
                 except Exception as e:
-                    out.write(f"[Error reading file: {e}]\n")
-
-    print(f"✅ Project dump saved to {output_file} (excluding dumper.py, .gitignore, .gcloudignore files, and ignored items)")
+                    out.write(f"[Could not read: {e}]\n")
+    
+    print(f"✅ Done: {output_file}")
 
 
 if __name__ == "__main__":
-    dump_project(root_dir=".", output_file="project_dump.txt")
+    dump_project()
