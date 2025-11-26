@@ -22,7 +22,7 @@ Complete healthcare platform for digitizing and managing medical records in Indi
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/jiva-health.git
+git clone https://github.com/workforakng/jiva-health.git
 cd jiva-health
 ```
 
