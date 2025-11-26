@@ -1,3 +1,4 @@
+````markdown
 # Jīva Health - AI-Powered Health Record Management
 
 Complete healthcare platform for digitizing and managing medical records in India.
@@ -10,52 +11,51 @@ Complete healthcare platform for digitizing and managing medical records in Indi
 - **Mobile-First**: React Native (Expo) mobile application
 - **RESTful API**: FastAPI backend with comprehensive documentation
 
-# Jiva Health
+## 📋 Prerequisites
 
-This project helps capture and organize medical records. It's set up so you can run a local backend service, a mobile app for interacting with it, and a couple of small cloud functions for document processing.
+- **Node.js** 18+ and npm
+- **Python** 3.11+
+- **Google Cloud Account** with Vision API enabled
+- **Firebase Project** with Authentication, Firestore, and Storage enabled
 
-What's in this repo
+## 🛠️ Installation
 
-- `backend/` — FastAPI backend (API, OCR/NLP, Firestore integration)
-- `mobile-app/` — Expo React Native app
-- `cloud-functions/` — Google Cloud Functions used for document processing
-- `archive/` — non-essential docs and helper scripts moved here to keep the root tidy
+### 1. Clone the Repository
 
-Get started quickly
+```bash
+git clone https://github.com/workforakng/jiva-health.git
+cd jiva-health
+```
 
-1) Backend (PowerShell)
+### 2. Backend Setup
 
-```powershell
-cd backend
-python -m venv .venv
-.venv\Scripts\Activate.ps1
+```bash
+cd jiva-health/backend
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Download spaCy language model
+python -m spacy download en_core_web_sm
+
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your credentials
+# Add your Firebase service account key as jiva-health-key.json
 ```
 
-2) Mobile app (PowerShell)
+### 3. Mobile App Setup
 
-```powershell
-cd mobile-app
-npm install
-npm start
-```
-
-Notes and tips
-
-- Use `.env.example` files as templates. Never commit real secrets or service-account JSON files.
-- The long, original README is saved as `archive/README.original.md` in case you want to review it later.
-
-Restore a file from `archive/`
-
-```powershell
-git mv archive/<FILENAME> <FILENAME>
-git commit -m "restore <FILENAME> from archive"
-```
-
-If you want me to commit the cleanup and README change now, say: "Do the git commit" — I'll run the git commands and create a commit with a brief message.
-
-Want a longer README (API examples, env variables, or developer notes)? Tell me what to include and I'll expand this in a natural, human voice.
 ```bash
 cd jiva-health/mobile-app
 
@@ -314,7 +314,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 👥 Authors
 
-- Akshar - Initial work
+- Your Name - Initial work
 
 ## 🙏 Acknowledgments
 
@@ -325,3 +325,20 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - spaCy NLP library
 
 ---
+
+**Note:** This is a development setup. For production deployment, additional configuration for security, scaling, and monitoring is required.
+
+## 📦 Archived Files
+
+- Several non-essential docs and utility files were moved into `archive/` to keep the repository root focused and friendly. A copy of each archived item exists in `archive/`.
+
+- Archived items (examples): `CHECKLIST.md`, `FIXES.md`, `SUMMARY.md`, `dumper.py`, `lab-portal/placeholder.txt`, and an archived placeholder for `jiva-health/`.
+
+- To restore a file run:
+
+```powershell
+git mv archive/CHECKLIST.md CHECKLIST.md
+git commit -m "restore CHECKLIST.md from archive"
+```
+
+If you want me to fully remove the originals from the repo root (or to perform actual git moves instead of copies), tell me and I'll continue.
